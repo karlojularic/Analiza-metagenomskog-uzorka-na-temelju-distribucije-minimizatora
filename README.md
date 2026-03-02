@@ -1,8 +1,12 @@
 # Završni rad
-**Pristupnik:** Karlo Jularić
+**Pristupnik:** Karlo Jularić (0036558556)
+
 **Studij:** Elektrotehnika i informacijska tehnologija i Računarstvo
+
 **Modul:** Računarstvo
+
 **Mentor:** doc. dr. sc. Krešimir Križanović
+
 **Naslov teme:** Analiza metagenomskog uzorka na temelju distribucije minimizatora
 
 ## Opis teme
