@@ -3,10 +3,24 @@
 #include <vector>
 #include <tuple>
 #include <string>
+#include <unordered_map>
 #include "loading_sequences.hpp"
 #include "minimizers.hpp"
 
 using namespace std;
+
+
+auto distribution(const vector<tuple<unsigned int, unsigned int, bool>> minimizers) {
+    unordered_map<unsigned int, unsigned int> distribution_vector;
+
+    for (const auto& [kmer, pos, is_original] : minimizers) {
+        distribution_vector[kmer]++;
+    }
+
+    return distribution_vector;
+
+}
+
 
 int main(int argc, char *argv[]){
     cout << "Starting program..." << endl;
@@ -34,7 +48,19 @@ int main(int argc, char *argv[]){
     vector<analysis::Sequence> references = analysis::LoadSequences(file1);
     vector<analysis::Sequence> fragments = analysis::LoadSequences(file2);
 
-    vector<tuple<unsigned int, unsigned int, bool>> minimizers = analysis::Minimize(references[0].seq.c_str(), references[0].seq.size(), k, w);
+    for (const auto& ref : references) {
+        vector<tuple<unsigned int, unsigned int, bool>> ref_minimizers = analysis::Minimize(ref.seq.c_str(), ref.seq.size(), k, w); 
+        unordered_map<unsigned int, unsigned int> distribution_vector = distribution(ref_minimizers);
 
+        cout << "Distribution for reference: " << ref.name << endl;
+
+        for (const auto& [kmer, count] : distribution_vector) {
+            cout << kmer << ": " << count << endl;
+        }
+
+    }
+
+    
+    
     return 0;
 }
