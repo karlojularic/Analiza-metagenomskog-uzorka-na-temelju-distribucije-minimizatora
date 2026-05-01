@@ -40,7 +40,7 @@ void create_metagenomic_reference(const vector<string>& reference_files, const s
 int main(int argc, char *argv[]){
     cout << "Starting program..." << endl;
 
-    string configuration = "config.txt";
+    string configuration = "../config.txt";
     string lines;
     unsigned int k = 10;
     unsigned int w = 3;
