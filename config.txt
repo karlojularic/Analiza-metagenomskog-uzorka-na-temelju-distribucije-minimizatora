@@ -1,0 +1,4 @@
+k=5
+w=3
+reference_files=aeromonas_hydrophila_reference.fasta
+fragment_files=test.fastq
