@@ -5,6 +5,8 @@
 #include <unordered_map>
 #include <filesystem>
 #include <fstream>
+#include <cmath>
+#include <map>
 #include "loading_sequences.hpp"
 #include "minimizers.hpp"
 
@@ -34,6 +36,25 @@ void create_metagenomic_reference(const vector<string>& reference_files, const s
     }
 
     out.close();
+}
+
+double cosine_similarity(const unordered_map<unsigned int, unsigned int>& ref, const unordered_map<unsigned int, unsigned int>& frag){
+    double dot = 0.0;
+    double denom_a = 0.0;
+    double denom_b = 0.0;
+    for (const auto& [kmer, count] : ref) {
+        if (frag.find(kmer) != frag.end()) {
+            dot += count * frag.at(kmer);
+        }
+        denom_a += count * count;
+    }
+
+    for (const auto& [kmer, count] : frag) {
+        denom_b += count * count;
+    }
+
+    return dot / (sqrt(denom_a) * sqrt(denom_b));
+
 }
 
 
@@ -83,24 +104,58 @@ int main(int argc, char *argv[]){
         filesystem::remove(metagenomic_reference_file);
     }
     create_metagenomic_reference(reference_files, metagenomic_reference_file);
+
+    map<string,unordered_map<unsigned int, unsigned int>> ref_distributions;
+    map<string,unordered_map<unsigned int, unsigned int>> frag_distributions;
     
     vector<analysis::Sequence> references = analysis::LoadSequences("../data/metagenomic_reference.fasta");
-    
-    for (const auto& frag : fragment_files) {
-        vector<analysis::Sequence> fragments = analysis::LoadSequences("../data/fastq/" + frag);
-    }
 
     for (const auto& ref : references) {
         vector<tuple<unsigned int, unsigned int, bool>> ref_minimizers = analysis::Minimize(ref.seq.c_str(), ref.seq.size(), k, w); 
-        unordered_map<unsigned int, unsigned int> distribution_vector = distribution(ref_minimizers);
+        unordered_map<unsigned int, unsigned int> distribution_vector_ref_temp = distribution(ref_minimizers);
 
         cout << "Distribution for reference: " << ref.name << endl;
 
-        for (const auto& [kmer, count] : distribution_vector) {
+        for (const auto& [kmer, count] : distribution_vector_ref_temp) {
             cout << kmer << ": " << count << endl;
         }
 
+        ref_distributions[ref.name] = distribution_vector_ref_temp;
+
     }
+
+    for (const auto& frag : fragment_files) {
+        vector<analysis::Sequence> fragments = analysis::LoadSequences("../data/fastq/" + frag);
+        for (const auto& fragment : fragments) {
+            vector<tuple<unsigned int, unsigned int, bool>> frag_minimizers = analysis::Minimize(fragment.seq.c_str(), fragment.seq.size(), k, w); 
+            unordered_map<unsigned int, unsigned int> distribution_vector_frag_temp = distribution(frag_minimizers);
+
+            cout << "Distribution for fragment: " << fragment.name << endl;
+
+            for (const auto& [kmer, count] : distribution_vector_frag_temp) {
+                cout << kmer << ": " << count << endl;
+            }
+
+        frag_distributions[fragment.name] = distribution_vector_frag_temp;
+
+        }
+
+    }
+
+    for (auto& [ref_name, ref_dist] : ref_distributions) {
+        double max_similarity = 0.0;
+        string most_similar_fragment;
+        for (auto& [frag_name, frag_dist] : frag_distributions) {
+            double similarity = cosine_similarity(ref_dist, frag_dist);
+            cout << "Cosine similarity between " << ref_name << " and " << frag_name << ": " << similarity << endl;
+            if (similarity > max_similarity) {
+                max_similarity = similarity;
+                most_similar_fragment = frag_name;
+            }
+        }
+        cout << "Most similar fragment to " << ref_name << ": " << most_similar_fragment << " with similarity: " << max_similarity << endl;
+    }
+
 
     return 0;
 }
