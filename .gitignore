@@ -1,6 +1,3 @@
 # CMake build directory
 build/
-data/
-
-.vscode/
 .claude/
