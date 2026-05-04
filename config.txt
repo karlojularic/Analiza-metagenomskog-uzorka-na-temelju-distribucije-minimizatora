@@ -1,4 +1,4 @@
-k=5
-w=3
-reference_files=aeromonas_hydrophila_reference.fasta
-fragment_files=test.fastq
+k=3
+w=10
+reference_files=aeromonas_hydrophila_reference.fasta,ecoli_reference.fasta
+fragment_files=test.fastq,ecoli_fragments.fastq

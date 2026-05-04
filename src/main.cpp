@@ -57,14 +57,44 @@ double cosine_similarity(const unordered_map<unsigned int, unsigned int>& ref, c
 
 }
 
+void export_to_csv(const map<string, unordered_map<unsigned int, unsigned int>>& distributions, const string& output_file, unsigned int k) {
+    ofstream out(output_file);
+
+    for (const auto& [name, dist] : distributions) {
+        out << name;
+        if (&name != &distributions.rbegin()->first) {
+            out << ";";
+        }
+    }
+    out << endl;
+
+    for (unsigned int i = 0; i < int(pow(4, k)); ++i) {
+        for (const auto& [name, dist] : distributions) {
+            unsigned int temp = 0;
+            if (dist.find(i) != dist.end()) {
+                temp = dist.at(i);
+            } else {
+                temp = 0;
+            }
+
+            out << temp;
+            if (&name != &distributions.rbegin()->first) {
+                out << ";";
+            }
+        }
+        out << endl;
+    }
+    out.close();
+}   
+
 
 int main(int argc, char *argv[]){
     cout << "Starting program..." << endl;
 
     string configuration = "../config.txt";
     string lines;
-    unsigned int k = 10;
-    unsigned int w = 3;
+    unsigned int k = 3;
+    unsigned int w = 10;
     vector<string> reference_files;
     vector<string> fragment_files;
 
@@ -142,20 +172,33 @@ int main(int argc, char *argv[]){
 
     }
 
-    for (auto& [ref_name, ref_dist] : ref_distributions) {
+    for (auto& [frag_name, frag_dist] : frag_distributions) {
         double max_similarity = 0.0;
-        string most_similar_fragment;
-        for (auto& [frag_name, frag_dist] : frag_distributions) {
+        string most_similar_reference;
+        for (auto& [ref_name, ref_dist] : ref_distributions) {
             double similarity = cosine_similarity(ref_dist, frag_dist);
             cout << "Cosine similarity between " << ref_name << " and " << frag_name << ": " << similarity << endl;
             if (similarity > max_similarity) {
                 max_similarity = similarity;
-                most_similar_fragment = frag_name;
+                most_similar_reference = ref_name;
             }
         }
-        cout << "Most similar fragment to " << ref_name << ": " << most_similar_fragment << " with similarity: " << max_similarity << endl;
+        cout << "Most similar reference for fragment " << frag_name << ": " << most_similar_reference << " with similarity " << max_similarity << endl;
     }
 
+    string reference_csv = "../data/reference_data.csv";
+    string fragments_csv = "../data/fragment_data.csv";
+    if (filesystem::exists(reference_csv)) {
+        cout << "Reference CSV file already exists. Removing it..." << endl;
+        filesystem::remove(reference_csv);
+    }
+    if (filesystem::exists(fragments_csv)) {
+        cout << "Fragments CSV file already exists. Removing it..." << endl;
+        filesystem::remove(fragments_csv);
+    }
+
+    export_to_csv(ref_distributions, reference_csv, k);
+    export_to_csv(frag_distributions, fragments_csv, k);
 
     return 0;
 }
