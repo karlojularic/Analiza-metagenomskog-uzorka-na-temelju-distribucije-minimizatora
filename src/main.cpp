@@ -27,7 +27,7 @@ void create_metagenomic_reference(const vector<string>& reference_files, const s
     ofstream out(output_file);
 
     for (const auto& file : reference_files) {
-        ifstream in("../data/" + file);
+        ifstream in("../data/reference_files/" + file);
         string line;
         while (getline(in, line)) {
             out << line << endl;
@@ -85,7 +85,18 @@ void export_to_csv(const map<string, unordered_map<unsigned int, unsigned int>>&
         out << endl;
     }
     out.close();
-}   
+}
+
+void export_classification_to_csv(const unordered_map<string, unordered_map<string, double>>& classification_map, const unordered_map<string, string>& fragment_to_reference_map, const string& output_file) {
+    ofstream out(output_file);
+    out << "Fragment;Most Similar Reference;Actual Reference;Cosine Similarity" << endl;
+    for (const auto& [fragment, references] : classification_map) {
+        for (const auto& [reference, similarity] : references) {
+            out << fragment << ";" << reference << ";" << fragment_to_reference_map.at(fragment) << ";" << similarity << endl;
+        }
+    }
+    out.close();
+}
 
 
 int main(int argc, char *argv[]){
@@ -128,7 +139,7 @@ int main(int argc, char *argv[]){
         }
     }
 
-    string metagenomic_reference_file = "../data/metagenomic_reference.fasta";
+    string metagenomic_reference_file = "../output/metagenomic_reference.fasta";
     if (filesystem::exists(metagenomic_reference_file)) {
         cout << "Metagenomic reference file already exists. Removing it..." << endl;
         filesystem::remove(metagenomic_reference_file);
@@ -138,7 +149,7 @@ int main(int argc, char *argv[]){
     map<string,unordered_map<unsigned int, unsigned int>> ref_distributions;
     map<string,unordered_map<unsigned int, unsigned int>> frag_distributions;
     
-    vector<analysis::Sequence> references = analysis::LoadSequences("../data/metagenomic_reference.fasta");
+    vector<analysis::Sequence> references = analysis::LoadSequences("../output/metagenomic_reference.fasta");
 
     for (const auto& ref : references) {
         vector<tuple<unsigned int, unsigned int, bool>> ref_minimizers = analysis::Minimize(ref.seq.c_str(), ref.seq.size(), k, w); 
@@ -154,8 +165,10 @@ int main(int argc, char *argv[]){
 
     }
 
+    unordered_map<string, string> fragment_to_reference_map;
+
     for (const auto& frag : fragment_files) {
-        vector<analysis::Sequence> fragments = analysis::LoadSequences("../data/fastq/" + frag);
+        vector<analysis::Sequence> fragments = analysis::LoadSequences("../data/fragments_files/" + frag);
         for (const auto& fragment : fragments) {
             vector<tuple<unsigned int, unsigned int, bool>> frag_minimizers = analysis::Minimize(fragment.seq.c_str(), fragment.seq.size(), k, w); 
             unordered_map<unsigned int, unsigned int> distribution_vector_frag_temp = distribution(frag_minimizers);
@@ -166,12 +179,14 @@ int main(int argc, char *argv[]){
                 cout << kmer << ": " << count << endl;
             }
 
-        frag_distributions[fragment.name] = distribution_vector_frag_temp;
+            frag_distributions[fragment.name] = distribution_vector_frag_temp;
+            fragment_to_reference_map[fragment.name] = frag;
 
         }
 
     }
 
+    unordered_map<string, unordered_map<string, double>> similarity_map;
     for (auto& [frag_name, frag_dist] : frag_distributions) {
         double max_similarity = 0.0;
         string most_similar_reference;
@@ -183,11 +198,13 @@ int main(int argc, char *argv[]){
                 most_similar_reference = ref_name;
             }
         }
+        similarity_map[frag_name][most_similar_reference] = max_similarity;
         cout << "Most similar reference for fragment " << frag_name << ": " << most_similar_reference << " with similarity " << max_similarity << endl;
     }
 
-    string reference_csv = "../data/reference_data.csv";
-    string fragments_csv = "../data/fragment_data.csv";
+    string reference_csv = "../output/reference_data.csv";
+    string fragments_csv = "../output/fragment_data.csv";
+    string clasification_csv = "../output/classification_data.csv";
     if (filesystem::exists(reference_csv)) {
         cout << "Reference CSV file already exists. Removing it..." << endl;
         filesystem::remove(reference_csv);
@@ -196,9 +213,18 @@ int main(int argc, char *argv[]){
         cout << "Fragments CSV file already exists. Removing it..." << endl;
         filesystem::remove(fragments_csv);
     }
+    if(filesystem::exists(clasification_csv)) {
+        cout << "Classification CSV file already exists. Removing it..." << endl;
+        filesystem::remove(clasification_csv);
+    }
 
     export_to_csv(ref_distributions, reference_csv, k);
     export_to_csv(frag_distributions, fragments_csv, k);
+    export_classification_to_csv(similarity_map, fragment_to_reference_map, clasification_csv);
+
+
+    cout << "\nGenerating PDF report..." << endl;
+    system("cd .. && Rscript -e \"rmarkdown::render('distribution_analysis.Rmd', output_file='output/distribution_report.pdf')\"");
 
     return 0;
 }

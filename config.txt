@@ -1,4 +1,4 @@
 k=3
 w=10
-reference_files=aeromonas_hydrophila_reference.fasta,ecoli_reference.fasta
-fragment_files=test.fastq,ecoli_fragments.fastq
+reference_files=bacillus_cereus_reference.fasta,escherichia_coli_reference.fasta,haemophilus_influenzae_reference.fasta,helicobacter_pylori_reference.fasta,lactobacillus_gasseri_reference.fasta
+fragment_files=bacillus_cereus.fastq,escherichia_coli.fastq,haemophilus_influenzae.fastq,helicobacter_pylori.fastq,lactobacillus_gasseri.fastq
