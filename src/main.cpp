@@ -44,13 +44,13 @@ double cosine_similarity(const unordered_map<unsigned int, unsigned int>& ref, c
     double denom_b = 0.0;
     for (const auto& [kmer, count] : ref) {
         if (frag.find(kmer) != frag.end()) {
-            dot += count * frag.at(kmer);
+            dot += (double)count * (double)frag.at(kmer);
         }
-        denom_a += count * count;
+        denom_a += (double)count * (double)count;
     }
 
     for (const auto& [kmer, count] : frag) {
-        denom_b += count * count;
+        denom_b += (double)count * (double)count;
     }
 
     return dot / (sqrt(denom_a) * sqrt(denom_b));
@@ -63,7 +63,7 @@ void export_to_csv(const map<string, unordered_map<unsigned int, unsigned int>>&
     for (const auto& [name, dist] : distributions) {
         out << name;
         if (&name != &distributions.rbegin()->first) {
-            out << ";";
+            out << ",";
         }
     }
     out << endl;
@@ -79,7 +79,7 @@ void export_to_csv(const map<string, unordered_map<unsigned int, unsigned int>>&
 
             out << temp;
             if (&name != &distributions.rbegin()->first) {
-                out << ";";
+                out << ",";
             }
         }
         out << endl;
@@ -89,10 +89,10 @@ void export_to_csv(const map<string, unordered_map<unsigned int, unsigned int>>&
 
 void export_classification_to_csv(const unordered_map<string, unordered_map<string, double>>& classification_map, const unordered_map<string, string>& fragment_to_reference_map, const string& output_file) {
     ofstream out(output_file);
-    out << "Fragment;Most Similar Reference;Actual Reference;Cosine Similarity" << endl;
+    out << "Fragment,Most Similar Reference,Actual Reference,Cosine Similarity" << endl;
     for (const auto& [fragment, references] : classification_map) {
         for (const auto& [reference, similarity] : references) {
-            out << fragment << ";" << reference << ";" << fragment_to_reference_map.at(fragment) << ";" << similarity << endl;
+            out << fragment << "," << reference << "," << fragment_to_reference_map.at(fragment) << "," << similarity << endl;
         }
     }
     out.close();
@@ -161,7 +161,8 @@ int main(int argc, char *argv[]){
             cout << kmer << ": " << count << endl;
         }
 
-        ref_distributions[ref.name] = distribution_vector_ref_temp;
+        string ref_name = ref.name.substr(0, ref.name.find(' '));
+        ref_distributions[ref_name] = distribution_vector_ref_temp;
 
     }
 
@@ -180,7 +181,7 @@ int main(int argc, char *argv[]){
             }
 
             frag_distributions[fragment.name] = distribution_vector_frag_temp;
-            fragment_to_reference_map[fragment.name] = frag;
+            fragment_to_reference_map[fragment.name] = frag.substr(0, frag.find("_trimmed.fastq"));
 
         }
 

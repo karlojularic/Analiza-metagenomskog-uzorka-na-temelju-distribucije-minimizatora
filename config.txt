@@ -1,4 +1,4 @@
-k=3
+k=6
 w=10
 reference_files=bacillus_cereus_reference.fasta,escherichia_coli_reference.fasta,haemophilus_influenzae_reference.fasta,helicobacter_pylori_reference.fasta,lactobacillus_gasseri_reference.fasta
-fragment_files=bacillus_cereus.fastq,escherichia_coli.fastq,haemophilus_influenzae.fastq,helicobacter_pylori.fastq,lactobacillus_gasseri.fastq
+fragment_files=bacillus_cereus_trimmed.fastq,escherichia_coli_trimmed.fastq,haemophilus_influenzae_trimmed.fastq,helicobacter_pylori_trimmed.fastq,lactobacillus_gasseri_trimmed.fastq
