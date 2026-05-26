@@ -1,4 +1,45 @@
 
-# Stupičasti dijagram brojnosti očitanja organizama unutar metagenomskog uzorka
+---
+title: "Analiza metagenomskog uzorka"
+author: "Karlo Jularić"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
 
-library
+
+```{r}
+library(ggplot2)
+library(reshape2)
+library(caret)
+
+classification <- read.csv("output/classification_data.csv", header = TRUE)
+reference <- read.csv("output/reference_data.csv", header = TRUE)
+```
+
+```{r}
+accession_to_organism <- c(
+    "NC_004722.1" = "bacillus_cereus",
+    "NC_004721.2" = "bacillus_cereus",
+    "NC_000913.3" = "escherichia_coli",
+    "NC_000907.1" = "haemophilus_influenzae",
+    "NC_000915.1" = "helicobacter_pylori",
+    "NC_008530.1" = "lactobacillus_gasseri"
+)
+classification$predicted_organism <- accession_to_organism[classification$Most.Similar.Reference]
+classification$correct <- classification$predicted_organism == classification$Actual.Reference
+```
+
+```{r}
+ggplot(classification, aes(x = Actual.Reference, y = ..count..)) +
+    geom_bar() +
+    labs(title = "Distribucija stvarnih referenci", x = "Stvarna referenca", y = "Broj fragmenata") +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r}
+ggplot(classification, aes(x = seq_along(Actual.Reference), y = Cosine.Similarity, color = correct)) +
+    geom_point() +
+    labs(title = "Kosinusna sličnost po fragmentu", x = "Fragment", y = "Kosinusna sličnost") +
+    scale_color_manual(values = c("red", "green"), labels = c("Pogrešno", "Točno")) +
+    theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
+```
