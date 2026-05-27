@@ -43,3 +43,37 @@ ggplot(classification, aes(x = seq_along(Actual.Reference), y = Cosine.Similarit
     scale_color_manual(values = c("red", "green"), labels = c("Pogrešno", "Točno")) +
     theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
 ```
+
+```{r}
+confusion_matrix <- read.csv("output/confusion_matrix.csv", header = TRUE, row.names = 1)
+confusion_matrix$Reference <- rownames(confusion_matrix)
+confusion_matrix_melted <- melt(confusion_matrix, id.vars = "Reference", variable.name = "Prediction", value.name = "value")
+ggplot(confusion_matrix_melted, aes(x = Prediction, y = Reference, fill = value)) +
+    geom_tile() +
+    geom_text(aes(label = value), color = "white") +
+    scale_fill_gradient(low = "blue", high = "red") +
+    labs(title = "Matrica zabune", x = "Predikcija", y = "Stvarna referenca") +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r}
+cosine_sim <- function(a, b) sum(a * b) / (sqrt(sum(a^2)) * sqrt(sum(b^2)))
+
+ref_matrix <- as.matrix(reference)
+n <- ncol(ref_matrix)
+sim_matrix <- matrix(0, n, n, dimnames = list(colnames(ref_matrix), colnames(ref_matrix)))
+
+for (i in 1:n) {
+    for (j in 1:n) {
+        sim_matrix[i, j] <- cosine_sim(ref_matrix[, i], ref_matrix[, j])
+    }
+}
+
+sim_melted <- melt(sim_matrix)
+ggplot(sim_melted, aes(x = Var1, y = Var2, fill = value)) +
+    geom_tile() +
+    geom_text(aes(label = round(value, 2)), color = "white", size = 3) +
+    scale_fill_gradient(low = "blue", high = "red") +
+    labs(title = "Matrica sličnosti referentnih genoma", x = "", y = "") +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
