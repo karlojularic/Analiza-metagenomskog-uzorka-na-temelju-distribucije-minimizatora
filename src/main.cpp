@@ -87,13 +87,12 @@ void export_to_csv(const map<string, unordered_map<unsigned int, unsigned int>>&
     out.close();
 }
 
-void export_classification_to_csv(const unordered_map<string, unordered_map<string, double>>& classification_map, const unordered_map<string, string>& fragment_to_reference_map, const string& output_file) {
+void export_classification_to_csv(const unordered_map<string, pair<string, double>>& classification_map, const unordered_map<string, string>& fragment_to_reference_map, const string& output_file) {
     ofstream out(output_file);
     out << "Fragment,Most Similar Reference,Actual Reference,Cosine Similarity" << endl;
     for (const auto& [fragment, references] : classification_map) {
-        for (const auto& [reference, similarity] : references) {
-            out << fragment << "," << reference << "," << fragment_to_reference_map.at(fragment) << "," << similarity << endl;
-        }
+        const auto& [reference, similarity] = references;
+        out << fragment << "," << reference << "," << fragment_to_reference_map.at(fragment) << "," << similarity << endl;
     }
     out.close();
 }
@@ -103,7 +102,7 @@ int main(int argc, char *argv[]){
     cout << "Starting program..." << endl;
 
     string configuration = "../config.txt";
-    string lines;
+    string line;
     unsigned int k = 3;
     unsigned int w = 10;
     vector<string> reference_files;
@@ -115,27 +114,27 @@ int main(int argc, char *argv[]){
     }
 
     ifstream config_file(configuration);
-    while (getline(config_file, lines)) {
-        if (lines.rfind("reference_files=", 0) == 0) {
-            string files_str = lines.substr(16);
+    while (getline(config_file, line)) {
+        if (line.rfind("reference_files=", 0) == 0) {
+            string files_str = line.substr(16);
             size_t pos = 0;
             while ((pos = files_str.find(',')) != string::npos) {
                 reference_files.push_back(files_str.substr(0, pos));
                 files_str.erase(0, pos + 1);
             }
             reference_files.push_back(files_str);
-        } else if (lines.rfind("fragment_files=", 0) == 0) {
-            string files_str = lines.substr(15);
+        } else if (line.rfind("fragment_files=", 0) == 0) {
+            string files_str = line.substr(15);
             size_t pos = 0;
             while ((pos = files_str.find(',')) != string::npos) {
                 fragment_files.push_back(files_str.substr(0, pos));
                 files_str.erase(0, pos + 1);
             }
             fragment_files.push_back(files_str);
-        } else if (lines.rfind("k=", 0) == 0) {
-            k = stoi(lines.substr(2));
-        } else if (lines.rfind("w=", 0) == 0) {
-            w = stoi(lines.substr(2));
+        } else if (line.rfind("k=", 0) == 0) {
+            k = stoi(line.substr(2));
+        } else if (line.rfind("w=", 0) == 0) {
+            w = stoi(line.substr(2));
         }
     }
 
@@ -153,16 +152,16 @@ int main(int argc, char *argv[]){
 
     for (const auto& ref : references) {
         vector<tuple<unsigned int, unsigned int, bool>> ref_minimizers = analysis::Minimize(ref.seq.c_str(), ref.seq.size(), k, w); 
-        unordered_map<unsigned int, unsigned int> distribution_vector_ref_temp = distribution(ref_minimizers);
+        unordered_map<unsigned int, unsigned int> ref_dist_temp = distribution(ref_minimizers);
 
         cout << "Distribution for reference: " << ref.name << endl;
 
-        for (const auto& [kmer, count] : distribution_vector_ref_temp) {
+        for (const auto& [kmer, count] : ref_dist_temp) {
             cout << kmer << ": " << count << endl;
         }
 
         string ref_name = ref.name.substr(0, ref.name.find(' '));
-        ref_distributions[ref_name] = distribution_vector_ref_temp;
+        ref_distributions[ref_name] = ref_dist_temp;
 
     }
 
@@ -172,22 +171,22 @@ int main(int argc, char *argv[]){
         vector<analysis::Sequence> fragments = analysis::LoadSequences("../data/fragments_files/" + frag);
         for (const auto& fragment : fragments) {
             vector<tuple<unsigned int, unsigned int, bool>> frag_minimizers = analysis::Minimize(fragment.seq.c_str(), fragment.seq.size(), k, w); 
-            unordered_map<unsigned int, unsigned int> distribution_vector_frag_temp = distribution(frag_minimizers);
+            unordered_map<unsigned int, unsigned int> frag_dist_temp = distribution(frag_minimizers);
 
             cout << "Distribution for fragment: " << fragment.name << endl;
 
-            for (const auto& [kmer, count] : distribution_vector_frag_temp) {
+            for (const auto& [kmer, count] : frag_dist_temp) {
                 cout << kmer << ": " << count << endl;
             }
 
-            frag_distributions[fragment.name] = distribution_vector_frag_temp;
+            frag_distributions[fragment.name] = frag_dist_temp;
             fragment_to_reference_map[fragment.name] = frag.substr(0, frag.find("_trimmed.fastq"));
 
         }
 
     }
 
-    unordered_map<string, unordered_map<string, double>> similarity_map;
+    unordered_map<string, pair<string, double>> best_match_map;
     for (auto& [frag_name, frag_dist] : frag_distributions) {
         double max_similarity = 0.0;
         string most_similar_reference;
@@ -199,13 +198,13 @@ int main(int argc, char *argv[]){
                 most_similar_reference = ref_name;
             }
         }
-        similarity_map[frag_name][most_similar_reference] = max_similarity;
+        best_match_map[frag_name] = {most_similar_reference, max_similarity};
         cout << "Most similar reference for fragment " << frag_name << ": " << most_similar_reference << " with similarity " << max_similarity << endl;
     }
 
     string reference_csv = "../output/reference_data.csv";
     string fragments_csv = "../output/fragment_data.csv";
-    string clasification_csv = "../output/classification_data.csv";
+    string classification_csv = "../output/classification_data.csv";
     if (filesystem::exists(reference_csv)) {
         cout << "Reference CSV file already exists. Removing it..." << endl;
         filesystem::remove(reference_csv);
@@ -214,15 +213,17 @@ int main(int argc, char *argv[]){
         cout << "Fragments CSV file already exists. Removing it..." << endl;
         filesystem::remove(fragments_csv);
     }
-    if(filesystem::exists(clasification_csv)) {
+    if(filesystem::exists(classification_csv)) {
         cout << "Classification CSV file already exists. Removing it..." << endl;
-        filesystem::remove(clasification_csv);
+        filesystem::remove(classification_csv);
     }
 
     export_to_csv(ref_distributions, reference_csv, k);
     export_to_csv(frag_distributions, fragments_csv, k);
-    export_classification_to_csv(similarity_map, fragment_to_reference_map, clasification_csv);
+    export_classification_to_csv(best_match_map, fragment_to_reference_map, classification_csv);
 
+    cout << "\nRunning Python analysis script..." << endl;
+    system("cd .. && venv/bin/python3 analysis.py");
 
     cout << "\nGenerating PDF report..." << endl;
     system("cd .. && Rscript -e \"rmarkdown::render('distribution_analysis.Rmd', output_file='output/distribution_report.pdf')\"");
