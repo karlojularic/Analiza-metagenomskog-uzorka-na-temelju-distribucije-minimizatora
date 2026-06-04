@@ -81,6 +81,7 @@ for (i in 1:n) {
 sim_melted <- melt(sim_matrix)
 sim_melted$Var1 <- accession_to_organism[as.character(sim_melted$Var1)]
 sim_melted$Var2 <- accession_to_organism[as.character(sim_melted$Var2)]
+sim_melted <- aggregate(value ~ Var1 + Var2, data = sim_melted, FUN = mean)
 ggplot(sim_melted, aes(x = Var1, y = Var2, fill = value)) +
     geom_tile() +
     geom_text(aes(label = round(value, 2)), color = "white", size = 3) +
