@@ -9,8 +9,7 @@ def main():
     columns = ['Actual Reference', 'Most Similar Reference']
 
     mapping = {
-        "NC_004722.1": "bacillus_cereus",
-        "NC_004721.2": "bacillus_cereus",
+        "NC_013169.1": "kytococcus_sedentarius",
         "NC_000913.3": "escherichia_coli",
         "NC_000907.1": "haemophilus_influenzae",
         "NC_000915.1": "helicobacter_pylori",

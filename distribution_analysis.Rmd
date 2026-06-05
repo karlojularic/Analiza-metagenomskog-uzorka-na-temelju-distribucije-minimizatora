@@ -19,8 +19,7 @@ reference <- read.csv("output/reference_data.csv", header = TRUE)
 
 ```{r include=FALSE}
 accession_to_organism <- c(
-    "NC_004722.1" = "bacillus_cereus",
-    "NC_004721.2" = "bacillus_cereus",
+    "NC_013169.1" = "kytococcus_sedentarius",
     "NC_000913.3" = "escherichia_coli",
     "NC_000907.1" = "haemophilus_influenzae",
     "NC_000915.1" = "helicobacter_pylori",
@@ -28,6 +27,7 @@ accession_to_organism <- c(
 )
 classification$predicted_organism <- accession_to_organism[classification$Most.Similar.Reference]
 classification$correct <- classification$predicted_organism == classification$Actual.Reference
+organism_order <- c("escherichia_coli", "haemophilus_influenzae", "helicobacter_pylori", "kytococcus_sedentarius", "lactobacillus_gasseri")
 ```
 
 ## Distribucija stvarnih referenci
@@ -55,6 +55,8 @@ Matrica zabune prikazuje uspješnost klasifikacije po svakoj bakteriji.
 confusion_matrix <- read.csv("output/confusion_matrix.csv", header = TRUE, row.names = 1)
 confusion_matrix$Reference <- rownames(confusion_matrix)
 confusion_matrix_melted <- melt(confusion_matrix, id.vars = "Reference", variable.name = "Prediction", value.name = "value")
+confusion_matrix_melted$Reference <- factor(confusion_matrix_melted$Reference, levels = organism_order)
+confusion_matrix_melted$Prediction <- factor(confusion_matrix_melted$Prediction, levels = organism_order)
 ggplot(confusion_matrix_melted, aes(x = Prediction, y = Reference, fill = value)) +
     geom_tile() +
     geom_text(aes(label = value), color = "white") +
@@ -82,6 +84,8 @@ sim_melted <- melt(sim_matrix)
 sim_melted$Var1 <- accession_to_organism[as.character(sim_melted$Var1)]
 sim_melted$Var2 <- accession_to_organism[as.character(sim_melted$Var2)]
 sim_melted <- aggregate(value ~ Var1 + Var2, data = sim_melted, FUN = mean)
+sim_melted$Var1 <- factor(sim_melted$Var1, levels = organism_order)
+sim_melted$Var2 <- factor(sim_melted$Var2, levels = organism_order)
 ggplot(sim_melted, aes(x = Var1, y = Var2, fill = value)) +
     geom_tile() +
     geom_text(aes(label = round(value, 2)), color = "white", size = 3) +
