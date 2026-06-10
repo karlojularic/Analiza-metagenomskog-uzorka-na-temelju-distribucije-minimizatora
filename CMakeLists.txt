@@ -10,11 +10,11 @@ set(SRC_FILES
     src/minimizers.cpp
 )
 
-add_executable(MyProgram ${SRC_FILES})
+add_executable(distribution_analysis ${SRC_FILES})
 
-target_include_directories(MyProgram PRIVATE
+target_include_directories(distribution_analysis PRIVATE
     ${CMAKE_CURRENT_BINARY_DIR}
     include
 )
 
-target_link_libraries(MyProgram PRIVATE bioparser)
+target_link_libraries(distribution_analysis PRIVATE bioparser)
