@@ -103,7 +103,7 @@ int main(int argc, char *argv[]){
 
     string configuration = "../config.txt";
     string line;
-    unsigned int k = 3;
+    unsigned int k = 6;
     unsigned int w = 10;
     vector<string> reference_files;
     vector<string> fragment_files;
