@@ -1,0 +1,86 @@
+
+---
+title: "Analiza metagenomskog uzorka"
+author: "Karlo Jularić"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+Izvještaj prikazuje rezultate analize metagenomskog uzorka na temelju distribucije minimizatora - analiza je provedena klasifikacijom korištenjem kosinusne sličnosti distribucijskih vektora.
+
+```{r include=FALSE}
+library(ggplot2)
+library(reshape2)
+library(caret)
+
+classification <- read.csv("output/classification_data.csv", header = TRUE)
+reference <- read.csv("output/reference_data.csv", header = TRUE)
+```
+
+```{r include=FALSE}
+accession_to_organism <- c(
+    "NC_013169.1" = "kytococcus_sedentarius",
+    "NC_000913.3" = "escherichia_coli",
+    "NC_000907.1" = "haemophilus_influenzae",
+    "NC_000915.1" = "helicobacter_pylori",
+    "NC_008530.1" = "lactobacillus_gasseri"
+)
+classification$predicted_organism <- accession_to_organism[classification$Most.Similar.Reference]
+classification$correct <- classification$predicted_organism == classification$Actual.Reference
+organism_order <- c("escherichia_coli", "haemophilus_influenzae", "helicobacter_pylori", "kytococcus_sedentarius", "lactobacillus_gasseri")
+```
+
+## Kosinusna sličnost očitanja
+Svaka točka predstavlja jedno očitanje. Zelenom bojom označena su točno klasificirana očitanja, a crvenom pogrešno klasificirana.
+```{r}
+ggplot(classification, aes(x = seq_along(Actual.Reference), y = Cosine.Similarity, color = correct)) +
+    geom_point() +
+    labs(title = "Kosinusna slicnost po fragmentu", x = "Fragment", y = "Kosinusna slicnost") +
+    scale_color_manual(values = c("red", "green"), labels = c("Pogresno", "Tocno")) +
+    theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
+```
+
+## Matrica zabune
+Matrica zabune prikazuje uspješnost klasifikacije po svakoj bakteriji.
+```{r}
+confusion_matrix <- read.csv("output/confusion_matrix.csv", header = TRUE, row.names = 1)
+confusion_matrix$Reference <- rownames(confusion_matrix)
+confusion_matrix_melted <- melt(confusion_matrix, id.vars = "Reference", variable.name = "Prediction", value.name = "value")
+confusion_matrix_melted$Reference <- factor(confusion_matrix_melted$Reference, levels = organism_order)
+confusion_matrix_melted$Prediction <- factor(confusion_matrix_melted$Prediction, levels = organism_order)
+ggplot(confusion_matrix_melted, aes(x = Prediction, y = Reference, fill = value)) +
+    geom_tile() +
+    geom_text(aes(label = value), color = "white") +
+    scale_fill_gradient(low = "blue", high = "red") +
+    labs(title = "Matrica zabune", x = "Predikcija", y = "Stvarna referenca") +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+## Matrica sličnosti referentnih genoma
+Matrica sličnosti prikazuje kosinusnu sličnost između distribucijskih vektora referentnih genoma.
+```{r}
+cosine_sim <- function(a, b) sum(a * b) / (sqrt(sum(a^2)) * sqrt(sum(b^2)))
+
+ref_matrix <- as.matrix(reference)
+n <- ncol(ref_matrix)
+sim_matrix <- matrix(0, n, n, dimnames = list(colnames(ref_matrix), colnames(ref_matrix)))
+
+for (i in 1:n) {
+    for (j in 1:n) {
+        sim_matrix[i, j] <- cosine_sim(ref_matrix[, i], ref_matrix[, j])
+    }
+}
+
+sim_melted <- melt(sim_matrix)
+sim_melted$Var1 <- accession_to_organism[as.character(sim_melted$Var1)]
+sim_melted$Var2 <- accession_to_organism[as.character(sim_melted$Var2)]
+sim_melted <- aggregate(value ~ Var1 + Var2, data = sim_melted, FUN = mean)
+sim_melted$Var1 <- factor(sim_melted$Var1, levels = organism_order)
+sim_melted$Var2 <- factor(sim_melted$Var2, levels = organism_order)
+ggplot(sim_melted, aes(x = Var1, y = Var2, fill = value)) +
+    geom_tile() +
+    geom_text(aes(label = round(value, 2)), color = "white", size = 3) +
+    scale_fill_gradient(low = "blue", high = "red") +
+    labs(title = "Matrica slicnosti referentnih genoma", x = "", y = "") +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
