@@ -1,6 +1,5 @@
 # CMake build directory
 build/
-.claude/
 data/fragments_files/*.fastq
 !data/fragments_files/*_trimmed.fastq
 output/
