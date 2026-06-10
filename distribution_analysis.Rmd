@@ -30,15 +30,6 @@ classification$correct <- classification$predicted_organism == classification$Ac
 organism_order <- c("escherichia_coli", "haemophilus_influenzae", "helicobacter_pylori", "kytococcus_sedentarius", "lactobacillus_gasseri")
 ```
 
-## Distribucija stvarnih referenci
-Dijagram prikazuje broj fragmenata koji su stvarno pripadali svakoj bakteriji u uzorku, bez obzira na to jesu li klasificirani ispravno ili ne.
-```{r}
-ggplot(classification, aes(x = Actual.Reference, y = after_stat(count))) +
-    geom_bar() +
-    labs(title = "Distribucija stvarnih referenci", x = "Stvarna referenca", y = "Broj fragmenata") +
-    theme(axis.text.x = element_text(angle = 45, hjust = 1))
-```
-
 ## Kosinusna sličnost očitanja
 Svaka točka predstavlja jedno očitanje. Zelenom bojom označena su točno klasificirana očitanja, a crvenom pogrešno klasificirana.
 ```{r}
