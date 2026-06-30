@@ -1,11 +1,12 @@
 #pragma once
 #include <vector>
-#include <tuple>
+#include <utility>
 #include <string>
+#include <algorithm>
 
 namespace analysis {
 
-std::vector<std::tuple<unsigned int, unsigned int, bool>> Minimize(
+std::vector<std::pair<unsigned int, unsigned int>> Minimize(
     const char* sequence, 
     unsigned int sequence_len,
     unsigned int kmer_len,
@@ -33,6 +34,17 @@ inline unsigned int getReverseComplement(unsigned int kmer, unsigned int k) {
         kmer >>= 2;
     }
     return rc;
+}
+
+inline std::string getReverseChain(std::string sequence) {
+    for (int i = 0; i < sequence.size(); ++i) {
+        if (sequence[i] == 'A' || sequence[i] == 'a') sequence[i] = 'T';
+        else if (sequence[i] == 'C' || sequence[i] == 'c') sequence[i] = 'G';
+        else if (sequence[i] == 'G' || sequence[i] == 'g') sequence[i] = 'C';
+        else if (sequence[i] == 'T' || sequence[i] == 't') sequence[i] = 'A';
+    }
+    std::reverse(sequence.begin(), sequence.end());
+    return sequence;
 }
 
 }

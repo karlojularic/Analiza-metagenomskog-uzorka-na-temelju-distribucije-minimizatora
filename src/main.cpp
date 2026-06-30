@@ -1,6 +1,6 @@
 #include <iostream>
 #include <vector>
-#include <tuple>
+#include <utility>
 #include <string>
 #include <unordered_map>
 #include <filesystem>
@@ -12,10 +12,10 @@
 
 using namespace std;
 
-auto distribution(const vector<tuple<unsigned int, unsigned int, bool>>& minimizers) {
+auto distribution(const vector<pair<unsigned int, unsigned int>>& minimizers) {
     unordered_map<unsigned int, unsigned int> distribution_vector;
 
-    for (const auto& [kmer, pos, is_original] : minimizers) {
+    for (const auto& [kmer, pos] : minimizers) {
         distribution_vector[kmer]++;
     }
 
@@ -151,7 +151,7 @@ int main(int argc, char *argv[]){
     vector<analysis::Sequence> references = analysis::LoadSequences("../output/metagenomic_reference.fasta");
 
     for (const auto& ref : references) {
-        vector<tuple<unsigned int, unsigned int, bool>> ref_minimizers = analysis::Minimize(ref.seq.c_str(), ref.seq.size(), k, w); 
+        vector<pair<unsigned int, unsigned int>> ref_minimizers = analysis::Minimize(ref.seq.c_str(), ref.seq.size(), k, w); 
         unordered_map<unsigned int, unsigned int> ref_dist_temp = distribution(ref_minimizers);
 
         cout << "Distribution for reference: " << ref.name << endl;
@@ -170,7 +170,7 @@ int main(int argc, char *argv[]){
     for (const auto& frag : fragment_files) {
         vector<analysis::Sequence> fragments = analysis::LoadSequences("../data/fragments_files/" + frag);
         for (const auto& fragment : fragments) {
-            vector<tuple<unsigned int, unsigned int, bool>> frag_minimizers = analysis::Minimize(fragment.seq.c_str(), fragment.seq.size(), k, w); 
+            vector<pair<unsigned int, unsigned int>> frag_minimizers = analysis::Minimize(fragment.seq.c_str(), fragment.seq.size(), k, w); 
             unordered_map<unsigned int, unsigned int> frag_dist_temp = distribution(frag_minimizers);
 
             cout << "Distribution for fragment: " << fragment.name << endl;
