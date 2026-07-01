@@ -145,23 +145,29 @@ int main(int argc, char *argv[]){
     }
     create_metagenomic_reference(reference_files, metagenomic_reference_file);
 
-    map<string,unordered_map<unsigned int, unsigned int>> ref_distributions;
+    map<string,unordered_map<unsigned int, unsigned int>> ref_fwd_distributions;
+    map<string,unordered_map<unsigned int, unsigned int>> ref_rc_distributions;
     map<string,unordered_map<unsigned int, unsigned int>> frag_distributions;
     
     vector<analysis::Sequence> references = analysis::LoadSequences("../output/metagenomic_reference.fasta");
 
     for (const auto& ref : references) {
-        vector<pair<unsigned int, unsigned int>> ref_minimizers = analysis::Minimize(ref.seq.c_str(), ref.seq.size(), k, w); 
-        unordered_map<unsigned int, unsigned int> ref_dist_temp = distribution(ref_minimizers);
+        vector<pair<unsigned int, unsigned int>> ref_fwd_minimizers = analysis::Minimize(ref.seq.c_str(), ref.seq.size(), k, w); 
+        unordered_map<unsigned int, unsigned int> ref_fwd_dist_temp = distribution(ref_fwd_minimizers);
 
         cout << "Distribution for reference: " << ref.name << endl;
 
-        for (const auto& [kmer, count] : ref_dist_temp) {
+        for (const auto& [kmer, count] : ref_fwd_dist_temp) {
             cout << kmer << ": " << count << endl;
         }
 
         string ref_name = ref.name.substr(0, ref.name.find(' '));
-        ref_distributions[ref_name] = ref_dist_temp;
+        ref_fwd_distributions[ref_name] = ref_fwd_dist_temp;
+
+        string ref_rc_seq = analysis::getReverseChain(ref.seq);
+        vector<pair<unsigned int, unsigned int>> ref_rc_minimizers = analysis::Minimize(ref_rc_seq.c_str(), ref_rc_seq.size(), k, w);
+        unordered_map<unsigned int, unsigned int> ref_rc_dist_temp = distribution(ref_rc_minimizers);
+        ref_rc_distributions[ref_name] = ref_rc_dist_temp;
 
     }
 
@@ -186,11 +192,11 @@ int main(int argc, char *argv[]){
 
     }
 
-    unordered_map<string, pair<string, double>> best_match_map;
+    unordered_map<string, pair<string, double>> best_match_map_fwd;
     for (auto& [frag_name, frag_dist] : frag_distributions) {
         double max_similarity = 0.0;
         string most_similar_reference;
-        for (auto& [ref_name, ref_dist] : ref_distributions) {
+        for (auto& [ref_name, ref_dist] : ref_fwd_distributions) {
             double similarity = cosine_similarity(ref_dist, frag_dist);
             cout << "Cosine similarity between " << ref_name << " and " << frag_name << ": " << similarity << endl;
             if (similarity > max_similarity) {
@@ -198,7 +204,23 @@ int main(int argc, char *argv[]){
                 most_similar_reference = ref_name;
             }
         }
-        best_match_map[frag_name] = {most_similar_reference, max_similarity};
+        best_match_map_fwd[frag_name] = {most_similar_reference, max_similarity};
+        cout << "Most similar reference for fragment " << frag_name << ": " << most_similar_reference << " with similarity " << max_similarity << endl;
+    }
+
+    unordered_map<string, pair<string, double>> best_match_map_rc;
+    for (auto& [frag_name, frag_dist] : frag_distributions) {
+        double max_similarity = 0.0;
+        string most_similar_reference;
+        for (auto& [ref_name, ref_dist] : ref_rc_distributions) {
+            double similarity = cosine_similarity(ref_dist, frag_dist);
+            cout << "Cosine similarity between " << ref_name << " and " << frag_name << ": " << similarity << endl;
+            if (similarity > max_similarity) {
+                max_similarity = similarity;
+                most_similar_reference = ref_name;
+            }
+        }
+        best_match_map_rc[frag_name] = {most_similar_reference, max_similarity};
         cout << "Most similar reference for fragment " << frag_name << ": " << most_similar_reference << " with similarity " << max_similarity << endl;
     }
 
@@ -218,9 +240,11 @@ int main(int argc, char *argv[]){
         filesystem::remove(classification_csv);
     }
 
-    export_to_csv(ref_distributions, reference_csv, k);
+    export_to_csv(ref_fwd_distributions, reference_csv, k);
+    export_to_csv(ref_rc_distributions, reference_csv, k);
     export_to_csv(frag_distributions, fragments_csv, k);
-    export_classification_to_csv(best_match_map, fragment_to_reference_map, classification_csv);
+    export_classification_to_csv(best_match_map_fwd, fragment_to_reference_map, classification_csv);
+    export_classification_to_csv(best_match_map_rc, fragment_to_reference_map, classification_csv);
 
     cout << "\nRunning Python analysis script..." << endl;
     system("cd .. && venv/bin/python3 analysis.py");
