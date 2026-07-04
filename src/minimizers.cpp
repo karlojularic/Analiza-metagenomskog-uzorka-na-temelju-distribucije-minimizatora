@@ -2,13 +2,13 @@
 
 namespace analysis {
 
-std::vector<std::tuple<unsigned int, unsigned int, bool>> Minimize(
+std::vector<std::pair<unsigned int, unsigned int>> Minimize(
     const char* sequence, 
     unsigned int sequence_len,
     unsigned int kmer_len,
     unsigned int window_len) {
 
-    std::vector<std::tuple<unsigned int, unsigned int, bool>> minimizers;
+    std::vector<std::pair<unsigned int, unsigned int>> minimizers;
 
     if (sequence_len < kmer_len) return minimizers;
 
@@ -17,9 +17,8 @@ std::vector<std::tuple<unsigned int, unsigned int, bool>> Minimize(
     struct KmerInfo {
         unsigned int value;
         unsigned int pos;
-        bool is_original;
     };
-    std::vector<KmerInfo> canonical_kmers;
+    std::vector<KmerInfo> kmers;
 
     for (int i = 0; i < num_kmers; ++i) {
         unsigned int current_kmer = 0;
@@ -27,35 +26,29 @@ std::vector<std::tuple<unsigned int, unsigned int, bool>> Minimize(
             current_kmer = (current_kmer << 2) | charTo2Bit(sequence[i + j]);
         }
 
-        unsigned int rc_kmer = getReverseComplement(current_kmer, kmer_len);
+        kmers.push_back({current_kmer, (unsigned int)i});
 
-        if (current_kmer <= rc_kmer) {
-            canonical_kmers.push_back({current_kmer, (unsigned int)i, true});
-        } else {
-            canonical_kmers.push_back({rc_kmer, (unsigned int)i, false});
-        }
     }
 
-    if (canonical_kmers.size() < window_len) {
-        window_len = canonical_kmers.size();
+    if (kmers.size() < window_len) {
+        window_len = kmers.size();
     }
 
     int last_added_pos = -1;
 
-    for (int i = 0; i <= (int)canonical_kmers.size() - (int)window_len; ++i) {
-        KmerInfo min_in_window = canonical_kmers[i];
+    for (int i = 0; i <= (int)kmers.size() - (int)window_len; ++i) {
+        KmerInfo min_in_window = kmers[i];
 
         for (unsigned int j = 1; j < window_len; ++j) {
-            if (canonical_kmers[i + j].value < min_in_window.value) {
-                min_in_window = canonical_kmers[i + j];
+            if (kmers[i + j].value < min_in_window.value) {
+                min_in_window = kmers[i + j];
             }
         }
 
         if (last_added_pos != (int)min_in_window.pos) {
-            minimizers.push_back(std::make_tuple(
+            minimizers.push_back(std::make_pair(
                 min_in_window.value, 
-                min_in_window.pos, 
-                min_in_window.is_original
+                min_in_window.pos
             ));
             last_added_pos = (int)min_in_window.pos;
         }
