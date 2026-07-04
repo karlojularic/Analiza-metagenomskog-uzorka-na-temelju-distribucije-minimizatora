@@ -84,7 +84,8 @@ Nakon izvršavanja program generira sljedeće datoteke u direktoriju `output/`:
 
 | Datoteka | Opis |
 |---|---|
-| `reference_data.csv` | Distribucijski vektori referentnih genoma |
+| `reference_data_fwd.csv` | Distribucijski vektori referentnih genoma glavnog lanca |
+| `reference_data_rc.csv` | Distribucijski vektori referentnih genoma reverzno komplementarnog lanca|
 | `fragment_data.csv` | Distribucijski vektori fragmenata |
 | `classification_data.csv` | Rezultati klasifikacije — fragment, najsličniji referentni genom, stvarna referenca i kosinusna sličnost |
 | `confusion_matrix.csv` | Matrica zabune generirana Python skriptom |

@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.12)
 
-project(Metagenomic-sample-analysis VERSION 1.0.0)
+project(Metagenomic-sample-analysis VERSION 1.1.0)
 
 add_subdirectory(external/bioparser)
 
