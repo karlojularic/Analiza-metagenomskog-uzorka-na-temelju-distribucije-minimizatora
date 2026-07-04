@@ -14,7 +14,8 @@ library(reshape2)
 library(caret)
 
 classification <- read.csv("output/classification_data.csv", header = TRUE)
-reference <- read.csv("output/reference_data.csv", header = TRUE)
+reference_fwd <- read.csv("output/reference_data_fwd.csv", header = TRUE)
+reference_rc <- read.csv("output/reference_data_rc.csv", header = TRUE)
 ```
 
 ```{r include=FALSE}
@@ -61,7 +62,7 @@ Matrica sličnosti prikazuje kosinusnu sličnost između distribucijskih vektora
 ```{r}
 cosine_sim <- function(a, b) sum(a * b) / (sqrt(sum(a^2)) * sqrt(sum(b^2)))
 
-ref_matrix <- as.matrix(reference)
+ref_matrix <- as.matrix(reference_fwd)
 n <- ncol(ref_matrix)
 sim_matrix <- matrix(0, n, n, dimnames = list(colnames(ref_matrix), colnames(ref_matrix)))
 
@@ -82,5 +83,32 @@ ggplot(sim_melted, aes(x = Var1, y = Var2, fill = value)) +
     geom_text(aes(label = round(value, 2)), color = "white", size = 3) +
     scale_fill_gradient(low = "blue", high = "red") +
     labs(title = "Matrica slicnosti referentnih genoma", x = "", y = "") +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+## Matrica sličnosti referentnih genoma (reverzni komplement)
+Matrica sličnosti prikazuje kosinusnu sličnost između distribucijskih vektora reverzno komplementarnih lanaca referentnih genoma.
+```{r}
+ref_matrix <- as.matrix(reference_rc)
+n <- ncol(ref_matrix)
+sim_matrix <- matrix(0, n, n, dimnames = list(colnames(ref_matrix), colnames(ref_matrix)))
+
+for (i in 1:n) {
+    for (j in 1:n) {
+        sim_matrix[i, j] <- cosine_sim(ref_matrix[, i], ref_matrix[, j])
+    }
+}
+
+sim_melted <- melt(sim_matrix)
+sim_melted$Var1 <- accession_to_organism[as.character(sim_melted$Var1)]
+sim_melted$Var2 <- accession_to_organism[as.character(sim_melted$Var2)]
+sim_melted <- aggregate(value ~ Var1 + Var2, data = sim_melted, FUN = mean)
+sim_melted$Var1 <- factor(sim_melted$Var1, levels = organism_order)
+sim_melted$Var2 <- factor(sim_melted$Var2, levels = organism_order)
+ggplot(sim_melted, aes(x = Var1, y = Var2, fill = value)) +
+    geom_tile() +
+    geom_text(aes(label = round(value, 2)), color = "white", size = 3) +
+    scale_fill_gradient(low = "blue", high = "red") +
+    labs(title = "Matrica slicnosti referentnih genoma reverznog komplementa", x = "", y = "") +
     theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
