@@ -224,12 +224,27 @@ int main(int argc, char *argv[]){
         cout << "Most similar reference for fragment " << frag_name << ": " << most_similar_reference << " with similarity " << max_similarity << endl;
     }
 
-    string reference_csv = "../output/reference_data.csv";
+    unordered_map<string, pair<string, double>> combined_best_match_map;
+    for (const auto& [frag_name_fwd, frag_match_fwd] : best_match_map_fwd) {
+        auto matching_rc = best_match_map_rc.at(frag_name_fwd);
+        if (frag_match_fwd.second >= matching_rc.second) {
+            combined_best_match_map[frag_name_fwd] = frag_match_fwd;
+        } else {
+            combined_best_match_map[frag_name_fwd] = matching_rc;
+        }
+    }
+
+    string reference_fwd_csv = "../output/reference_data_fwd.csv";
+    string reference_rc_csv = "../output/reference_data_rc.csv";
     string fragments_csv = "../output/fragment_data.csv";
     string classification_csv = "../output/classification_data.csv";
-    if (filesystem::exists(reference_csv)) {
+    if (filesystem::exists(reference_fwd_csv)) {
         cout << "Reference CSV file already exists. Removing it..." << endl;
-        filesystem::remove(reference_csv);
+        filesystem::remove(reference_fwd_csv);
+    }
+    if (filesystem::exists(reference_rc_csv)) {
+        cout << "Reference RC CSV file already exists. Removing it..." << endl;
+        filesystem::remove(reference_rc_csv);
     }
     if (filesystem::exists(fragments_csv)) {
         cout << "Fragments CSV file already exists. Removing it..." << endl;
@@ -240,12 +255,10 @@ int main(int argc, char *argv[]){
         filesystem::remove(classification_csv);
     }
 
-    export_to_csv(ref_fwd_distributions, reference_csv, k);
-    export_to_csv(ref_rc_distributions, reference_csv, k);
+    export_to_csv(ref_fwd_distributions, reference_fwd_csv, k);
+    export_to_csv(ref_rc_distributions, reference_rc_csv, k);
     export_to_csv(frag_distributions, fragments_csv, k);
-    export_classification_to_csv(best_match_map_fwd, fragment_to_reference_map, classification_csv);
-    export_classification_to_csv(best_match_map_rc, fragment_to_reference_map, classification_csv);
-
+    export_classification_to_csv(combined_best_match_map, fragment_to_reference_map, classification_csv);
     cout << "\nRunning Python analysis script..." << endl;
     system("cd .. && venv/bin/python3 analysis.py");
 
