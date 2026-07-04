@@ -139,6 +139,11 @@ int main(int argc, char *argv[]){
     }
 
     string metagenomic_reference_file = "../output/metagenomic_reference.fasta";
+
+    if (!filesystem::exists("../output")) {
+        cout << "Output directory does not exist. Creating it..." << endl;
+        filesystem::create_directory("../output");
+    }
     if (filesystem::exists(metagenomic_reference_file)) {
         cout << "Metagenomic reference file already exists. Removing it..." << endl;
         filesystem::remove(metagenomic_reference_file);
